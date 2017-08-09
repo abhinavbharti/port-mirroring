@@ -14,7 +14,7 @@ PKG_LICENSE:=BSD-2-Clause
 PKG_LICENSE_FILES:=LICENSE
 PKG_SOURCE:=$(PKG_NAME)-$(PKG_VERSION).tar.bz2
 PKG_SOURCE_SUBDIR:=$(PKG_NAME)-$(PKG_VERSION)
-PKG_SOURCE_URL:=git://github.com/mmaraya/port-mirroring.git
+PKG_SOURCE_URL:=git://github.com/abhinavbharti/port-mirroring.git
 PKG_SOURCE_PROTO:=git
 PKG_SOURCE_VERSION:=e59574753020d2a89f56992d4bce25e390fffc79
 PKG_BUILD_DIR:=$(BUILD_DIR)/$(PKG_NAME)-$(PKG_VERSION)
@@ -34,9 +34,9 @@ define Package/port-mirroring/install
 	$(INSTALL_DIR) $(1)/usr/sbin
 	$(INSTALL_BIN) $(PKG_BUILD_DIR)/bin/port-mirroring $(1)/usr/sbin/
 	$(INSTALL_DIR) $(1)/etc/config
-	$(INSTALL_CONF) $(PKG_BUILD_DIR)/openwrt/port-mirroring.conf $(1)/etc/config/port-mirroring
+	$(INSTALL_CONF) $(PKG_BUILD_DIR)/openwrt/files/port-mirroring.conf $(1)/etc/config/port-mirroring
 	$(INSTALL_DIR) $(1)/etc/init.d
-	$(INSTALL_BIN) $(PKG_BUILD_DIR)/openwrt/port-mirroringd $(1)/etc/init.d/port_mirroring
+	$(INSTALL_BIN) $(PKG_BUILD_DIR)/openwrt/files/port-mirroringd $(1)/etc/init.d/port_mirroring
 endef
 
 $(eval $(call BuildPackage,port-mirroring))

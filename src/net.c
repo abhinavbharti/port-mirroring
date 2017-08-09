@@ -7,8 +7,20 @@
  * which is part of this software package.
  *
  */
-
+#include <stdio.h>
 #include "net.h"
+
+#define xstr(s) str(s)
+#define str(s) #s
+
+#define ARP_CACHE       "/proc/net/arp"
+#define ARP_STRING_LEN  1023
+#define ARP_BUFFER_LEN  (ARP_STRING_LEN + 1)
+
+/* Format for fscanf() to read the 1st, 4th, and 6th space-delimited fields */
+#define ARP_LINE_FORMAT "%" xstr(ARP_STRING_LEN) "s %*s %*s " \
+                        "%" xstr(ARP_STRING_LEN) "s %*s " \
+                        "%" xstr(ARP_STRING_LEN) "s"
 
 char * printMACStr(const char* mac)
 {
@@ -165,6 +177,41 @@ int getSenderInterface(unsigned int targetIP, char* device, char* mac)
     return 1;
 }
 
+int getRemoteArpFromCache(unsigned int targetIP, char *mac)
+{
+	int found = 0;
+    FILE *arpCache = fopen(ARP_CACHE, "r");
+    if (!arpCache)
+    {
+        syslog(LOG_ERR, "Arp Cache: Failed to open file %s",ARP_CACHE );
+        return 1;
+    }
+
+    /* Ignore the first line, which contains the header */
+    char header[ARP_BUFFER_LEN];
+    if (!fgets(header, sizeof(header), arpCache))
+    {
+        return 1;
+    }
+
+    char ipAddr[ARP_BUFFER_LEN], hwAddr[ARP_BUFFER_LEN], device[ARP_BUFFER_LEN];
+    int count = 0;
+    while (3 == fscanf(arpCache, ARP_LINE_FORMAT, ipAddr, hwAddr, device))
+    {
+        printf("%03d: Mac Address of [%s] on [%s] is \"%s\"\n",
+                ++count, ipAddr, device, hwAddr);
+		if(inet_addr(ipAddr) == targetIP)
+		{
+				memcpy(mac, (const char *)hwAddr, ETH_ALEN);
+				found = 1;
+				break;
+		}
+    }
+    
+    fclose(arpCache);
+    return found;
+}
+
 int getRemoteARP(struct pm_cfg cfg, unsigned int targetIP, const char *device, char *mac)
 {
     unsigned int        localIP;
@@ -252,7 +299,18 @@ int getRemoteARP(struct pm_cfg cfg, unsigned int targetIP, const char *device, c
             break;
         }
     }
+    
     pcap_close(pHandle);
+	
+	if(found)
+	{
+		// We are unable to get the MAC from the arp
+		// try directly from ARP Cache
+		if(getRemoteArpFromCache(targetIP, mac))
+		{
+			found = 0;
+		}
+	}
 
     return found;
 }
